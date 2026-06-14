@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+<title>Damla vs Numan ⚔️</title>
+<style>
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent;user-select:none;-webkit-user-select:none;margin:0;padding:0;}
+  html,body{height:100%;overflow:hidden;background:#0d0508;font-family:"Segoe UI",system-ui,sans-serif;}
+  #game{position:fixed;inset:0;overflow:hidden;}
+  #canvas{position:absolute;inset:0;width:100%;height:100%;touch-action:none;}
+
+  /* HUD */
+  #hud{position:absolute;top:0;left:0;right:0;padding:8px 12px 0;display:flex;align-items:flex-start;gap:10px;z-index:5;pointer-events:none;}
+  .hud-side{flex:1;}
+  .hud-name{font-size:.72rem;font-weight:900;letter-spacing:.6px;margin-bottom:3px;}
+  .dn{color:#ff7396;} .nn{color:#ffd24d;text-align:right;}
+  .bar-out{height:15px;background:rgba(0,0,0,.5);border-radius:999px;overflow:hidden;border:1.5px solid rgba(255,255,255,.15);}
+  .bar-in{height:100%;border-radius:999px;transition:width .18s;}
+  #dHP{background:linear-gradient(90deg,#ff7396,#ff4d6d);}
+  #nHP{background:linear-gradient(90deg,#ffd24d,#f0b400);margin-left:auto;}
+  .bar-out.r{display:flex;justify-content:flex-end;}
+  .sub-row{display:flex;gap:5px;margin-top:3px;font-size:.62rem;font-weight:800;}
+  .sub-row.r{justify-content:flex-end;}
+  .chip{background:rgba(0,0,0,.45);border-radius:6px;padding:1px 6px;color:#ffd24d;}
+  .chip.combo{color:#ff7396;}
+  .hud-mid{text-align:center;min-width:64px;}
+  #timer{font-size:1.5rem;font-weight:900;color:#fff;line-height:1;text-shadow:0 2px 4px #000;}
+  #levelBadge{font-size:.6rem;font-weight:900;color:#ffd24d;}
+
+  /* Kontroller */
+  .pad{position:absolute;bottom:0;z-index:6;display:flex;gap:10px;padding:14px;}
+  #padLeft{left:0;align-items:flex-end;}
+  #padRight{right:0;align-items:flex-end;}
+  .key{border:none;border-radius:50%;color:#fff;font-weight:900;display:flex;flex-direction:column;align-items:center;justify-content:center;line-height:1;
+       box-shadow:0 4px 10px rgba(0,0,0,.4);transition:transform .06s,filter .06s;backdrop-filter:blur(2px);}
+  .key:active{transform:scale(.86);filter:brightness(1.3);}
+  .key small{font-size:.5rem;font-weight:800;margin-top:1px;opacity:.9;}
+  .move{width:58px;height:58px;font-size:1.5rem;background:rgba(90,35,48,.85);border:2px solid rgba(255,115,150,.4);}
+  .big{width:66px;height:66px;font-size:1.45rem;}
+  .punch{background:linear-gradient(135deg,#d6336c,#9d0208);}
+  .kick{background:linear-gradient(135deg,#ff7396,#c9184a);}
+  .jump{background:linear-gradient(135deg,#3a86ff,#0466c8);}
+  .block{background:linear-gradient(135deg,#2d9d6f,#1b4332);}
+  .hug{background:linear-gradient(135deg,#76c893,#2d6a4f);width:50px;height:50px;font-size:1.2rem;}
+
+  /* Overlay ekranlar */
+  .ov{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:10px;z-index:20;
+      background:radial-gradient(circle at 50% 40%,rgba(40,12,22,.92),rgba(13,5,8,.97));text-align:center;padding:20px;}
+  .ov.show{display:flex;}
+  .ov .emoji{font-size:3.2rem;line-height:1;}
+  .ov h2{color:#fff;font-size:1.7rem;font-weight:900;}
+  .ov p{color:#ff7396;font-size:.92rem;font-weight:700;max-width:440px;line-height:1.5;}
+  .ov .stats-box{display:grid;grid-template-columns:1fr 1fr;gap:4px 22px;background:rgba(0,0,0,.4);border-radius:12px;padding:10px 18px;color:#ffd9e3;font-size:.8rem;font-weight:700;}
+  .ov .stats-box b{color:#ffd24d;}
+  .btn{border:none;border-radius:999px;padding:13px 36px;color:#fff;font-weight:900;font-size:1rem;cursor:pointer;
+       background:linear-gradient(135deg,#ff4d6d,#c9184a);box-shadow:0 6px 16px rgba(201,24,74,.4);}
+  .btn:active{transform:scale(.95);}
+  .btn.alt{background:linear-gradient(135deg,#2d6a4f,#1b4332);padding:10px 28px;font-size:.88rem;}
+
+  /* Yatay uyarı */
+  #rotate{position:absolute;inset:0;display:none;flex-direction:column;align-items:center;justify-content:center;gap:14px;
+          background:#0d0508;z-index:50;color:#fff;text-align:center;padding:24px;}
+  #rotate .ph{font-size:3.5rem;animation:rotateHint 1.6s ease-in-out infinite;}
+  @keyframes rotateHint{0%,100%{transform:rotate(0)}50%{transform:rotate(90deg)}}
+  #rotate h2{font-size:1.3rem;font-weight:900;}
+  #rotate p{color:#ff7396;font-weight:700;}
+  @media (orientation:portrait){ #rotate{display:flex;} }
+</style>
+</head>
+<body>
+<div id="game">
+  <canvas id="canvas"></canvas>
+
+  <div id="hud">
+    <div class="hud-side">
+      <div class="hud-name dn">💗 DAMLA</div>
+      <div class="bar-out"><div class="bar-in" id="dHP" style="width:100%"></div></div>
+      <div class="sub-row"><span class="chip combo" id="comboChip">x1</span><span class="chip" id="powChip">⚡0%</span></div>
+    </div>
+    <div class="hud-mid">
+      <div id="timer">60</div>
+      <div id="levelBadge">SEVİYE 1</div>
+    </div>
+    <div class="hud-side">
+      <div class="hud-name nn">NUMAN 😏</div>
+      <div class="bar-out r"><div class="bar-in" id="nHP" style="width:100%"></div></div>
+      <div class="sub-row r"><span class="chip" id="numanMood">😏</span></div>
+    </div>
+  </div>
+
+  <div class="pad" id="padLeft">
+    <button class="key move" id="kL">◀</button>
+    <button class="key move" id="kR">▶</button>
+    <button class="key big jump" id="kJ">⬆️<small>ZIPLA</small></button>
+  </div>
+  <div class="pad" id="padRight">
+    <button class="key hug" id="kH">🤗<small>SARIL</small></button>
+    <button class="key big block" id="kB">🛡️<small>BLOK</small></button>
+    <button class="key big kick" id="kK">🦵<small>TEKME</small></button>
+    <button class="key big punch" id="kP">👊<small>YUMRUK</small></button>
+  </div>
+
+  <!-- Menü -->
+  <div class="ov show" id="menu">
+    <div class="emoji">⚔️</div>
+    <h2>Damla vs Numan</h2>
+    <p>Yatay tut, Damla'yı kontrol et!<br>
+    👊 yumruk · 🦵 tekme · 🛡️ blok · ⬆️ zıpla · 🤗 sarıl (+can)<br>
+    <b style="color:#ffd24d">Özel:</b> Havadayken 🦵 = <b style="color:#ffd24d">Uçan Tekme</b> · ◀◀/▶▶ sonra 👊 = <b style="color:#ffd24d">Dash Yumruk</b></p>
+    <button class="btn" id="startBtn">BAŞLA! 🥊</button>
+  </div>
+
+  <!-- Round bitişi -->
+  <div class="ov" id="end">
+    <div class="emoji" id="endEmoji">🏆</div>
+    <h2 id="endTitle">Damla kazandı!</h2>
+    <p id="endMsg"></p>
+    <div class="stats-box" id="statsBox"></div>
+    <button class="btn" id="nextBtn">Devam ➜</button>
+    <button class="btn alt" id="resetBtn1">Baştan 🔁</button>
+  </div>
+
+  <!-- Aşk finali -->
+  <div class="ov" id="love">
+    <div class="emoji">💕</div>
+    <h2>Barıştınız! 🕊️</h2>
+    <p id="loveMsg">"Numan'ı 5 kez yendin ama o hâlâ gülümsüyor… 'Seninle kavga etmek bile güzel Damla' diyor." 🥺💗</p>
+    <button class="btn" id="resetBtn2">Baştan Oyna 🔁</button>
+  </div>
+
+  <div id="rotate">
+    <div class="ph">📱</div>
+    <h2>Telefonu yatay çevir</h2>
+    <p>Bu oyun yatay modda oynanır 🎮</p>
+  </div>
+</div>
+
+<script>
+const cv=document.getElementById("canvas"), ctx=cv.getContext("2d");
+let W=0,H=0,floorY=0,DPR=Math.min(window.devicePixelRatio||1,2);
+
+function resize(){
+  W=window.innerWidth; H=window.innerHeight;
+  cv.width=W*DPR; cv.height=H*DPR; cv.style.width=W+"px"; cv.style.height=H+"px";
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  floorY=H-Math.max(34,H*0.13);
+}
+resize(); window.addEventListener("resize",resize);
+window.addEventListener("orientationchange",()=>setTimeout(resize,250));
+
+/* ============ DURUM ============ */
+let gameState="menu", level=1, score=0, timer=60, timerInt=null;
+let combo=1, lastHit=null, power=0, powerMode=false, powerTimer=0;
+let shake=0, hitStop=0;
+let particles=[], items=[], helper=null;
+let stats={punch:0,kick:0,block:0,hug:0,maxCombo:1,special:0};
+
+const SKIN="#f3c8a2", EYE_D="#c9184a", EYE_N="#3fae5a";
+const shirtColors={0:"#ffffff",1:"#ffd6e0",2:"#cdeffd",3:"#fff3b0",4:"#e0c3fc"};
+const costumeName=["Numan","Boksör Numan","Süper Numan","Bebek Numan","Kral Numan"];
+const bgPairs=[["#3a0f1c","#160810"],["#0d1b30","#060c18"],["#0c0c30","#050516"],["#152b0d","#070f05"],["#2e1a0a","#160a04"]];
+const sceneName=["Sokak","Arena","Uzay","Orman","Mutfak"];
+const numanThoughts=["Kaçsam mı? 🤔","Çikolata versem? 🍫","Annem nerede? 😭","Bu kadar mı? 😤","Aslında tatlı ama 🥰","Yandım gitti 💀"];
+const numanHurt=["Ay!","Dur!","Of!","Eyvah!","Anam!","Yeter!"];
+
+function mkFighter(x,isPlayer){
+  return {x,y:floorY,vx:0,vy:0,w:46,h:92,
+    hp:100,maxHp:100,facing:isPlayer?1:-1,isPlayer,
+    state:"idle",atk:0,atkType:"",atkHit:false,
+    hurt:0,blocking:false,jumping:false,walk:0,
+    tears:false,dance:0,costume:0,weaponBonus:0,
+    win:0,recoil:0,
+    aiTimer:0,aiAction:"chase",atkCD:0,thoughtTimer:0,thought:"",thoughtShow:0,helperUsed:false};
+}
+let D,N;
+
+/* ============ INPUT ============ */
+const held={left:false,right:false,block:false};
+let dashWindow=0, dashDir=0, lastTap={l:0,r:0};
+
+function bindHold(id,on){
+  const el=document.getElementById(id);
+  const set=v=>{ if(on) held[on]=v; };
+  el.addEventListener("touchstart",e=>{e.preventDefault();press(id,true);},{passive:false});
+  el.addEventListener("touchend",e=>{e.preventDefault();press(id,false);},{passive:false});
+  el.addEventListener("mousedown",()=>press(id,true));
+  el.addEventListener("mouseup",()=>press(id,false));
+  el.addEventListener("mouseleave",()=>press(id,false));
+}
+function bindTap(id,fn){
+  const el=document.getElementById(id);
+  el.addEventListener("touchstart",e=>{e.preventDefault();fn();},{passive:false});
+  el.addEventListener("click",e=>{e.preventDefault();fn();});
+}
+
+function press(id,v){
+  if(id==="kL"){ held.left=v; if(v) tapDir("l"); }
+  else if(id==="kR"){ held.right=v; if(v) tapDir("r"); }
+  else if(id==="kB"){ held.block=v; }
+}
+function tapDir(d){
+  const now=performance.now();
+  if(now-lastTap[d]<320){ dashDir=(d==="l"?-1:1); dashWindow=22; doDash(); }
+  lastTap[d]=now;
+}
+
+bindHold("kL"); bindHold("kR"); bindHold("kB");
+bindTap("kJ",doJump); bindTap("kP",()=>doAttack("punch"));
+bindTap("kK",()=>doAttack("kick")); bindTap("kH",doHug);
+
+document.getElementById("startBtn").onclick=startGame;
+document.getElementById("nextBtn").onclick=nextLevel;
+document.getElementById("resetBtn1").onclick=resetGame;
+document.getElementById("resetBtn2").onclick=resetGame;
+
+/* ============ AKSİYONLAR ============ */
+function doJump(){ if(gameState!=="fight"||D.jumping) return; D.vy=-15; D.jumping=true; D.state="jump"; }
+
+function doDash(){
+  if(gameState!=="fight"||D.jumping) return;
+  D.vx=dashDir*9; D.facing=dashDir;
+}
+
+function doAttack(type){
+  if(gameState!=="fight"||D.atk>0) return;
+  // Uçan tekme
+  if(type==="kick"&&D.jumping){ special("flykick"); return; }
+  // Dash yumruk
+  if(type==="punch"&&dashWindow>0){ special("dashpunch"); dashWindow=0; return; }
+
+  D.atk=type==="punch"?16:20; D.atkType=type; D.atkHit=false; D.state=type;
+  if(type==="punch") stats.punch++; else stats.kick++;
+}
+
+function special(kind){
+  D.atk=22; D.atkType=kind; D.atkHit=false; D.state=(kind==="flykick"?"kick":"punch");
+  stats.special++;
+  if(kind==="dashpunch"){ D.vx=D.facing*7; }
+  showFX(kind==="flykick"?"UÇAN TEKME! 🦵":"DASH YUMRUK! 💨","#ffd24d",D.x,D.y-90);
+}
+
+function doHug(){
+  if(gameState!=="fight"||D.recoil>0) return;
+  D.recoil=70;
+  if(Math.abs(D.x-N.x)<90){
+    D.hp=Math.min(D.maxHp,D.hp+18);
+    N.hp=Math.min(N.maxHp,N.hp+6);
+    stats.hug++;
+    showFX("Sarıldı! +18 💕","#ff7396",D.x,D.y-95);
+    spawnHearts((D.x+N.x)/2,D.y-50,8);
+    updateHUD();
+  } else showFX("Önce yaklaş! 😤","#ffd24d",D.x,D.y-90);
+}
+
+/* ============ ÇARPIŞMA / HASAR ============ */
+function attackConnect(attacker,defender){
+  if(attacker.atk<=0||attacker.atkHit) return;
+  // vuruş ortasında dene
+  if(attacker.atk>4&&attacker.atk<14){
+    const reach=(attacker.atkType==="kick"||attacker.atkType==="flykick")?95:72;
+    const dist=Math.abs(attacker.x-defender.x);
+    const facingOK=(defender.x-attacker.x)*attacker.facing>=-10;
+    if(dist<reach&&facingOK){
+      attacker.atkHit=true;
+      let dmg=baseDamage(attacker);
+      // savunan blok yapıyorsa
+      if(defender.blocking){
+        dmg=Math.round(dmg*0.2);
+        if(defender.isPlayer) stats.block++;
+        showFX("BLOK! 🛡️",defender.isPlayer?"#76c893":"#ffd24d",defender.x,defender.y-70);
+        defender.recoil=8;
+      } else {
+        // köşe hasarı
+        const margin=defender.w;
+        if(defender.x<margin*1.6||defender.x>W-margin*1.6){ dmg=Math.round(dmg*1.3); showFX("KÖŞE! 💥","#ff4d6d",defender.x,defender.y-70); }
+        bigHitEffects(attacker,defender,dmg);
+      }
+      dealDamage(defender,dmg,attacker);
+    }
+  }
+}
+
+function baseDamage(a){
+  if(a.isPlayer){
+    let base = a.atkType==="punch"?8 : a.atkType==="kick"?12 : a.atkType==="dashpunch"?18 : a.atkType==="flykick"?20 : 8;
+    // kombo
+    if(a.atkType===lastHit||["dashpunch","flykick"].includes(a.atkType)){ combo=Math.min(combo+1,5); }
+    else combo=1;
+    lastHit=a.atkType;
+    if(combo>stats.maxCombo) stats.maxCombo=combo;
+    let mult=1+(combo-1)*0.35;
+    if(powerMode) mult*=2;
+    if(a.weaponBonus>0){ mult*=1.6; a.weaponBonus--; }
+    let dmg=Math.round(base*mult);
+    // güç dolumu
+    if(!powerMode){ power=Math.min(100,power+dmg*0.7); if(power>=100) activatePower(); }
+    score+=dmg;
+    return dmg;
+  } else {
+    // BOT HASARI — dengeli, seviyeye göre hafif artar
+    let base=6+level*1.6;            // L1≈7.6, L5≈14
+    base+= (a.atkType==="kick"?3:0);
+    let dmg=Math.round(base + (Math.random()*4-2));
+    return Math.max(3,dmg);
+  }
+}
+
+function bigHitEffects(attacker,defender,dmg){
+  const big=dmg>=18||combo>=4||["dashpunch","flykick"].includes(attacker.atkType);
+  shake=Math.min(14, (big?12:6));
+  hitStop=big?7:3;
+  spawnHearts(defender.x,defender.y-50,big?9:5);
+  if(combo>=5&&attacker.isPlayer){ showFX("ULTRA KOMBO! 💥","#ff4d6d",attacker.x,(attacker.y-100)); }
+  else {
+    const w = attacker.isPlayer
+      ? (attacker.atkType==="kick"?["ÇARPP!","WHAM!","KÜT!"]:["POW!","BAM!","ÇAT!"])
+      : null;
+    if(w) showFX(w[(Math.random()*w.length)|0],"#ff4d6d",defender.x,defender.y-70);
+    else showFX("-"+dmg+" 😣","#ffd24d",defender.x,defender.y-70);
+  }
+}
+
+function dealDamage(c,dmg,from){
+  c.hp=Math.max(0,c.hp-dmg);
+  c.hurt=14; c.recoil=10;
+  c.vx += (from? (c.x<from.x?-1:1) : 0) * 3;
+  if(!c.isPlayer){ c.thought=numanHurt[(Math.random()*numanHurt.length)|0]; c.thoughtShow=40; }
+  updateHUD();
+  if(c.hp<=0) roundOver();
+}
+
+function activatePower(){
+  powerMode=true; power=100; powerTimer=360;
+  showFX("⚡ GÜÇ MODU! 2x HASAR! ⚡","#ffd166",D.x,D.y-100);
+  spawnParticles(D.x,D.y-40,12,"#ffd24d");
+}
+
+/* ============ ITEMLER (can paketi / silah) ============ */
+let itemTimer=0;
+function spawnItem(){
+  const kind=Math.random()<0.55?"heart":"weapon";
+  items.push({x:60+Math.random()*(W-120),y:-20,vy:1.5,kind,
+    icon:kind==="heart"?"❤️":(Math.random()<0.5?"🍳":"🩴"),onFloor:false,life:600});
+}
+function updateItems(){
+  for(const it of items){
+    if(!it.onFloor){ it.y+=it.vy; it.vy+=0.25; if(it.y>=floorY-14){ it.y=floorY-14; it.onFloor=true; } }
+    else it.life--;
+    // toplama
+    for(const c of [D,N]){
+      if(Math.abs(c.x-it.x)<32 && Math.abs((c.y-30)-it.y)<48 && !it.taken){
+        if(it.kind==="heart"){ c.hp=Math.min(c.maxHp,c.hp+22); showFX("+22 ❤️",c.isPlayer?"#ff7396":"#ffd24d",c.x,c.y-95); }
+        else { c.weaponBonus=4; showFX(it.icon+" Silah!","#ffd24d",c.x,c.y-95); }
+        it.taken=true; updateHUD();
+      }
+    }
+  }
+  items=items.filter(it=>!it.taken && it.life>0);
+}
+
+/* ============ YARDIMCI (düşük canda) ============ */
+function maybeHelper(){
+  if(N.hp/N.maxHp<0.3 && !N.helperUsed && level>=2){
+    N.helperUsed=true;
+    helper={x:N.x+N.facing*-60,y:floorY,t:180};
+    showFX("Yardımcı geldi! 🐥",N.facing>0?"#ffd24d":"#ffd24d",N.x,N.y-110);
+  }
+  if(helper){
+    helper.t--;
+    if(helper.t===90){ N.hp=Math.min(N.maxHp,N.hp+18); showFX("İyileştirme! +18 💛","#ffd24d",N.x,N.y-95); updateHUD(); }
+    if(helper.t<=0) helper=null;
+  }
+}
+
+/* ============ NUMAN BOT (DENGELI) ============ */
+function botAI(){
+  if(gameState!=="fight") return;
+  N.thoughtTimer--; if(N.thoughtShow>0) N.thoughtShow--;
+  N.tears = N.hp/N.maxHp<0.25;
+
+  // dans (oyuncu ona ultra atınca eğlence)
+  if(N.dance>0){ N.dance--; N.vx=Math.sin(N.dance*0.3)*1.2; return; }
+
+  const dist=Math.abs(D.x-N.x);
+  const hpR=N.hp/N.maxHp;
+  N.facing = D.x>=N.x?1:-1; N.facing = D.x>N.x?1:-1;
+
+  // düşünce balonu
+  if(N.thoughtTimer<=0){ N.thoughtTimer=180+((Math.random()*120)|0);
+    if(Math.random()<0.5){ N.thought=numanThoughts[(Math.random()*numanThoughts.length)|0]; N.thoughtShow=110; } }
+
+  N.aiTimer--; N.atkCD--;
+  // tepki hızı seviyeyle artar ama tabanlı
+  const react=Math.max(22, 52-level*5);
+  if(N.aiTimer<=0){
+    N.aiTimer=react+((Math.random()*20)|0);
+    const r=Math.random();
+    const aggro=Math.min(0.72, 0.30+level*0.10);
+    const blockP=Math.min(0.45, 0.12+level*0.06);
+    if(hpR<0.28 && r<0.4) N.aiAction="retreat";
+    else if(dist>120) N.aiAction="chase";
+    else if(dist<78 && r<aggro) N.aiAction="attack";
+    else if(r<blockP) N.aiAction="block";
+    else if(r<blockP+0.12 && !N.jumping) N.aiAction="hop";
+    else N.aiAction="chase";
+  }
+
+  N.blocking=false;
+  const spd=1.3+level*0.22;
+  if(N.aiAction==="chase"){ N.vx += ((D.x<N.x?-1:1)*spd - N.vx)*0.3; }
+  else if(N.aiAction==="retreat"){ N.vx += ((D.x<N.x?1:-1)*spd - N.vx)*0.3; }
+  else if(N.aiAction==="block"){ N.blocking=true; N.vx*=0.5; }
+  else if(N.aiAction==="hop"){ if(!N.jumping){ N.vy=-12; N.jumping=true; } N.aiAction="chase"; }
+  else if(N.aiAction==="attack"){
+    N.vx*=0.5;
+    if(dist<82 && N.atk===0 && N.atkCD<=0){
+      N.atk=18; N.atkType=Math.random()<0.5?"punch":"kick"; N.atkHit=false; N.state=N.atkType;
+      N.atkCD=Math.max(28, 64-level*6);  // saldırı arası bekleme — spam yok
+    }
+    if(dist>=82) N.aiAction="chase";
+  }
+
+  // çikolata özel iyileştirme (nadiren, düşük canda)
+  if(hpR<0.4 && Math.random()<0.0018){ N.hp=Math.min(N.maxHp,N.hp+10); showFX("🍫 Çikolata!","#ffd24d",N.x,N.y-95); updateHUD(); }
+}
+
+/* ============ FİZİK ============ */
+function physics(c){
+  c.x+=c.vx; c.y+=c.vy; c.vy+=0.8;
+  if(c.y>=floorY){ c.y=floorY; c.vy=0; if(c.jumping){c.jumping=false; if(c.state==="jump")c.state="idle";} }
+  const m=c.w/2+2;
+  c.x=Math.max(m,Math.min(W-m,c.x));
+  c.vx*= c.isPlayer?0.7:0.84;
+  if(c.atk>0){ c.atk--; if(c.atk===0){ c.state="idle"; } }
+  if(c.hurt>0) c.hurt--;
+  if(c.recoil>0) c.recoil--;
+  if(Math.abs(c.vx)>0.4 && !c.jumping && c.atk===0) c.walk+=0.3; else c.walk*=0.8;
+}
+
+function playerControl(){
+  if(gameState!=="fight") return;
+  const spd=3.6;
+  if(D.atk===0 && D.recoil<6){
+    if(held.left){ D.vx=-spd; D.facing=-1; if(!D.jumping&&D.atk===0)D.state="walk"; }
+    else if(held.right){ D.vx=spd; D.facing=1; if(!D.jumping&&D.atk===0)D.state="walk"; }
+    else if(!D.jumping&&D.atk===0&&D.state!=="block") D.state="idle";
+  }
+  D.blocking=held.block && !D.jumping && D.atk===0;
+  if(D.blocking) D.state="block";
+  if(dashWindow>0) dashWindow--;
+}
+
+/* ============ ÇİZİM ============ */
+function drawBG(){
+  const [a,b]=bgPairs[Math.min(level-1,bgPairs.length-1)];
+  const g=ctx.createLinearGradient(0,0,0,H); g.addColorStop(0,a); g.addColorStop(1,b);
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  if(level>=3){ for(let i=0;i<28;i++){ const sx=(i*97%W), sy=(i*53%(floorY*0.7))+10;
+    ctx.fillStyle="rgba(255,255,255,"+(0.2+(i%5)*0.12)+")"; ctx.fillRect(sx,sy,1.6,1.6);} }
+  // zemin
+  ctx.fillStyle="rgba(0,0,0,0.4)"; ctx.fillRect(0,floorY,W,H-floorY);
+  ctx.strokeStyle="rgba(201,24,74,0.6)"; ctx.lineWidth=2;
+  ctx.beginPath();ctx.moveTo(0,floorY);ctx.lineTo(W,floorY);ctx.stroke();
+  // sahne adı
+  ctx.fillStyle="rgba(255,255,255,0.08)"; ctx.font="900 26px Segoe UI"; ctx.textAlign="center";
+  ctx.fillText(sceneName[Math.min(level-1,4)].toUpperCase(),W/2,floorY+ (H-floorY)/2+8);
+  ctx.textAlign="left";
+}
+
+function drawFighter(c){
+  const scale=Math.min(1, (H/520)) * (c.isPlayer?1:Math.max(0.74,1-(c.costume)*0.05));
+  ctx.save();
+  ctx.translate(c.x,c.y);
+  ctx.scale(c.facing*scale,scale);
+
+  const flash=c.hurt>0 && (c.hurt>>1)%2===0;
+  ctx.globalAlpha=flash?0.45:1;
+
+  // gölge
+  ctx.globalAlpha*=1;
+  ctx.fillStyle="rgba(0,0,0,0.22)";
+  ctx.beginPath();ctx.ellipse(0,2,24,7,0,0,Math.PI*2);ctx.fill();
+
+  const walkA=Math.sin(c.walk)*8;
+  const punching=(c.state==="punch"||c.atkType==="dashpunch");
+  const kicking=(c.state==="kick"||c.atkType==="flykick");
+  const punchEx=punching&&c.atk>4?22:0;
+  const kickEx=kicking&&c.atk>4?20:0;
+
+  // pelerin (super numan)
+  if(!c.isPlayer&&c.costume===2){
+    ctx.fillStyle="#e63946"; ctx.globalAlpha=(flash?0.4:0.85);
+    ctx.beginPath();ctx.moveTo(-12,-66);ctx.quadraticCurveTo(-34,-10,-16,10);ctx.lineTo(-2,10);ctx.lineTo(-8,-60);ctx.closePath();ctx.fill();
+    ctx.globalAlpha=flash?0.45:1;
+  }
+
+  // bacaklar
+  ctx.fillStyle=c.isPlayer?"#c9184a":"#2f3a4a";
+  ctx.save();ctx.rotate((walkA+ (kicking?0:0))*0.01);
+  rrect(-14,-4,12,34,5);ctx.fill();ctx.restore();
+  ctx.save();ctx.rotate((kicking?(0.5+kickEx*0.01):(-walkA*0.01)));
+  rrect(2,-4,12,34+ (kicking?kickEx:0),5);ctx.fill();
+  if(kicking){ ctx.fillStyle=SKIN; ctx.beginPath();ctx.arc(8,30+kickEx,8,0,Math.PI*2);ctx.fill(); }
+  ctx.restore();
+
+  // gövde
+  ctx.fillStyle=c.isPlayer?"#ff7396":shirtColors[c.costume||0];
+  rrect(-19,-58,38,56,10);ctx.fill();
+  if(!c.isPlayer){ctx.strokeStyle="rgba(0,0,0,0.07)";ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,-52);ctx.lineTo(0,-6);ctx.stroke();}
+
+  // kollar
+  ctx.fillStyle=SKIN;
+  rrect(-30,-52,12,34,6);ctx.fill();           // arka kol
+  ctx.save();ctx.translate(punchEx,0);
+  rrect(18,-52,12,30,6);ctx.fill();
+  ctx.beginPath();ctx.arc(24,-22,9,0,Math.PI*2);ctx.fill(); // yumruk
+  ctx.restore();
+
+  // boyun + baş
+  ctx.fillStyle=SKIN; rrect(-7,-70,14,14,5);ctx.fill();
+  ctx.beginPath();ctx.ellipse(0,-88,21,23,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(-21,-86,6,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(21,-86,6,0,Math.PI*2);ctx.fill();
+
+  // saç
+  if(c.isPlayer){
+    ctx.fillStyle="#3d1c02";
+    ctx.beginPath();ctx.ellipse(0,-104,21,15,0,0,Math.PI*2);ctx.fill();
+    ctx.beginPath();ctx.moveTo(-21,-96);ctx.quadraticCurveTo(-34,-50,-26,8);ctx.lineTo(-17,8);ctx.quadraticCurveTo(-22,-48,-15,-92);ctx.closePath();ctx.fill();
+    ctx.beginPath();ctx.moveTo(21,-96);ctx.quadraticCurveTo(34,-50,26,8);ctx.lineTo(17,8);ctx.quadraticCurveTo(22,-48,15,-92);ctx.closePath();ctx.fill();
+  } else {
+    ctx.fillStyle="#ffd24d";
+    ctx.beginPath();
+    ctx.moveTo(-19,-104);ctx.lineTo(-23,-122);ctx.lineTo(-14,-108);ctx.lineTo(-7,-126);ctx.lineTo(-2,-108);
+    ctx.lineTo(2,-128);ctx.lineTo(6,-108);ctx.lineTo(12,-124);ctx.lineTo(16,-108);ctx.lineTo(23,-122);ctx.lineTo(19,-104);
+    ctx.ellipse(0,-106,19,11,0,0,Math.PI);ctx.closePath();ctx.fill();
+    if(c.costume===1){ctx.font="20px serif";ctx.save();ctx.scale(c.facing,1);ctx.fillText("🥊",c.facing>0?6:-26,-118);ctx.restore();}
+    if(c.costume===4){ctx.font="22px serif";ctx.save();ctx.scale(c.facing,1);ctx.fillText("👑",c.facing>0?-12:-12,-120);ctx.restore();}
+    if(c.costume===3){ctx.font="18px serif";ctx.save();ctx.scale(c.facing,1);ctx.fillText("🍼",c.facing>0?-30:14,-92);ctx.restore();}
+  }
+
+  // kaşlar
+  ctx.strokeStyle=c.isPlayer?"#3d1c02":"#b8860b";ctx.lineWidth=3;ctx.lineCap="round";
+  if(c.hurt>4||c.win>0){ctx.beginPath();ctx.moveTo(-14,-98);ctx.lineTo(-5,-94);ctx.stroke();ctx.beginPath();ctx.moveTo(14,-98);ctx.lineTo(5,-94);ctx.stroke();}
+  else {ctx.beginPath();ctx.moveTo(-14,-100);ctx.lineTo(-5,-98);ctx.stroke();ctx.beginPath();ctx.moveTo(5,-98);ctx.lineTo(14,-100);ctx.stroke();}
+
+  // gözler
+  const eye=c.isPlayer?EYE_D:EYE_N;
+  ctx.fillStyle="#fff";
+  ctx.beginPath();ctx.ellipse(-8,-88,6,7,0,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.ellipse(8,-88,6,7,0,0,Math.PI*2);ctx.fill();
+  const pr=c.hurt>4?2.5:4;
+  ctx.fillStyle=eye;
+  ctx.beginPath();ctx.arc(-8,-88,pr,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(8,-88,pr,0,Math.PI*2);ctx.fill();
+  ctx.fillStyle="#111";
+  ctx.beginPath();ctx.arc(-8,-88,pr*0.5,0,Math.PI*2);ctx.fill();
+  ctx.beginPath();ctx.arc(8,-88,pr*0.5,0,Math.PI*2);ctx.fill();
+
+  // gözyaşı
+  if(c.tears){ctx.fillStyle="#5db7ff";
+    ctx.beginPath();ctx.moveTo(-8,-80);ctx.quadraticCurveTo(-9,-68,-7,-64);ctx.quadraticCurveTo(-6,-68,-8,-80);ctx.fill();
+    ctx.beginPath();ctx.moveTo(8,-80);ctx.quadraticCurveTo(9,-68,7,-64);ctx.quadraticCurveTo(6,-68,8,-80);ctx.fill();}
+
+  // ağız
+  ctx.strokeStyle="#a8455c";ctx.lineWidth=2.5;ctx.lineCap="round";ctx.beginPath();
+  if(c.win>0){ctx.arc(0,-78,7,0.15,Math.PI-0.15);}
+  else if(c.hurt>4){ctx.arc(0,-76,7,0.2,Math.PI-0.2);}
+  else if(c.hp/c.maxHp<0.25){ctx.arc(0,-74,7,Math.PI+0.2,2*Math.PI-0.2);}
+  else {ctx.arc(0,-78,5,0.3,Math.PI-0.3,true);}
+  ctx.stroke();
+
+  // blok kalkanı
+  if(c.blocking){ctx.fillStyle="rgba(45,157,111,0.3)";ctx.strokeStyle="#76c893";ctx.lineWidth=2.5;
+    ctx.beginPath();ctx.ellipse(20,-46,15,38,0.25,0,Math.PI*2);ctx.fill();ctx.stroke();}
+
+  // zafer pozu kolu
+  if(c.win>0){ctx.fillStyle=SKIN;ctx.save();ctx.translate(0,0);rrect(16,-78,11,-26,5);ctx.fill();ctx.beginPath();ctx.arc(21,-78,8,0,Math.PI*2);ctx.fill();ctx.restore();}
+
+  ctx.restore();
+  ctx.globalAlpha=1;
+
+  // düşünce balonu (Numan)
+  if(!c.isPlayer && c.thoughtShow>0){
+    const tw=Math.max(96,c.thought.length*8+24), th=26, tx=c.x, ty=c.y-150*Math.min(1,H/520);
+    ctx.fillStyle="#fff";ctx.strokeStyle="#ffd24d";ctx.lineWidth=1.5;
+    rrect(tx-tw/2,ty,tw,th,9);ctx.fill();ctx.stroke();
+    ctx.beginPath();ctx.moveTo(tx-6,ty+th);ctx.lineTo(tx+6,ty+th);ctx.lineTo(tx,ty+th+8);ctx.closePath();ctx.fill();
+    ctx.fillStyle="#5a2330";ctx.font="bold 11px Segoe UI";ctx.textAlign="center";ctx.textBaseline="middle";
+    ctx.fillText(c.thought,tx,ty+th/2);ctx.textAlign="left";ctx.textBaseline="alphabetic";
+  }
+}
+
+function drawItems(){
+  for(const it of items){
+    ctx.font="26px serif";ctx.textAlign="center";
+    if(!it.onFloor||Math.floor(it.life/8)%2===0||it.life>120) ctx.fillText(it.icon,it.x,it.y);
+    ctx.textAlign="left";
+  }
+}
+function drawHelper(){
+  if(!helper) return;
+  ctx.font="28px serif";ctx.textAlign="center";
+  ctx.fillText("🐥",helper.x,floorY-6 - Math.abs(Math.sin(helper.t*0.2))*16);
+  ctx.textAlign="left";
+}
+
+let fxList=[];
+function showFX(txt,col,x,y){ fxList.push({txt,col,x,y,life:42,vy:-1.1}); }
+function drawFX(){
+  fxList=fxList.filter(f=>{
+    f.y+=f.vy; f.life--;
+    const a=Math.min(1,f.life/16);
+    ctx.globalAlpha=a; ctx.fillStyle=f.col; ctx.font="900 19px Segoe UI"; ctx.textAlign="center";
+    ctx.fillText(f.txt,f.x,f.y); ctx.globalAlpha=1; ctx.textAlign="left";
+    return f.life>0;
+  });
+}
+function spawnParticles(x,y,n,col){ for(let i=0;i<n;i++) particles.push({x,y,vx:(Math.random()-0.5)*6,vy:-Math.random()*5-1,life:30,col,txt:null}); }
+function spawnHearts(x,y,n){ for(let i=0;i<n;i++) particles.push({x,y,vx:(Math.random()-0.5)*4,vy:-Math.random()*4-1,life:38,txt:"💕"}); }
+function drawParticles(){
+  particles=particles.filter(p=>{
+    p.x+=p.vx;p.y+=p.vy;p.vy+=0.18;p.life--;
+    ctx.globalAlpha=Math.max(0,p.life/38);
+    if(p.txt){ctx.font="15px serif";ctx.textAlign="center";ctx.fillText(p.txt,p.x,p.y);ctx.textAlign="left";}
+    else{ctx.fillStyle=p.col;ctx.beginPath();ctx.arc(p.x,p.y,3,0,Math.PI*2);ctx.fill();}
+    ctx.globalAlpha=1; return p.life>0;
+  });
+}
+
+function rrect(x,y,w,h,r){
+  if(h<0){y+=h;h=-h;}
+  ctx.beginPath();
+  ctx.moveTo(x+r,y);ctx.lineTo(x+w-r,y);ctx.arcTo(x+w,y,x+w,y+r,r);
+  ctx.lineTo(x+w,y+h-r);ctx.arcTo(x+w,y+h,x+w-r,y+h,r);
+  ctx.lineTo(x+r,y+h);ctx.arcTo(x,y+h,x,y+h-r,r);
+  ctx.lineTo(x,y+r);ctx.arcTo(x,y,x+r,y,r);ctx.closePath();
+}
+
+/* ============ HUD ============ */
+function updateHUD(){
+  document.getElementById("dHP").style.width=(D.hp/D.maxHp*100)+"%";
+  document.getElementById("nHP").style.width=(N.hp/N.maxHp*100)+"%";
+  document.getElementById("comboChip").textContent="x"+combo;
+  document.getElementById("powChip").textContent=powerMode?"⚡AKTİF":"⚡"+Math.round(power)+"%";
+  document.getElementById("numanMood").textContent=N.tears?"😢":N.blocking?"🛡️":(N.hp/N.maxHp<0.3?"😰":"😏");
+}
+
+/* ============ AKIŞ ============ */
+function startGame(){ level=1; score=0; resetStats(); document.getElementById("menu").classList.remove("show"); initRound(); }
+function resetStats(){ stats={punch:0,kick:0,block:0,hug:0,maxCombo:1,special:0}; }
+
+function initRound(){
+  D=mkFighter(W*0.22,true);
+  N=mkFighter(W*0.74,false);
+  N.maxHp=120+level*30; N.hp=N.maxHp; N.costume=Math.min(level-1,4);
+  combo=1; lastHit=null; power=0; powerMode=false; powerTimer=0;
+  particles=[]; items=[]; fxList=[]; helper=null; itemTimer=300;
+  timer=60; gameState="fight";
+  document.getElementById("levelBadge").textContent="SEVİYE "+level+" · "+sceneName[Math.min(level-1,4)];
+  document.getElementById("end").classList.remove("show");
+  document.getElementById("love").classList.remove("show");
+  clearInterval(timerInt);
+  timerInt=setInterval(()=>{ if(gameState!=="fight")return; timer--; document.getElementById("timer").textContent=timer; if(timer<=0) roundOver(); },1000);
+  updateHUD();
+}
+
+function roundOver(){
+  if(gameState!=="fight") return;
+  gameState="roundend"; clearInterval(timerInt);
+  const win = N.hp<=0 || (D.hp>N.hp);
+  if(win){ D.win=1; D.state="win"; spawnParticles(D.x,D.y-50,20,"#ffd24d"); spawnHearts(D.x,D.y-60,10); }
+  else { N.thought="Kazandım! 😎"; N.thoughtShow=120; }
+  setTimeout(showEnd,900,win);
+}
+function showEnd(win){
+  document.getElementById("endEmoji").textContent=win?"🏆":"😱";
+  document.getElementById("endTitle").textContent=win?"Damla kazandı! 🎉":"Numan kazandı! 😈";
+  document.getElementById("endMsg").textContent=win
+    ?("Seviye "+level+" ("+sceneName[Math.min(level-1,4)]+") tamamlandı!  Puan: "+score)
+    :"Damla'nın canı bitti. Tekrar dene — bloklamayı ve sarılmayı unutma!";
+  document.getElementById("statsBox").innerHTML=
+    "<div>👊 Yumruk: <b>"+stats.punch+"</b></div><div>🦵 Tekme: <b>"+stats.kick+"</b></div>"+
+    "<div>🛡️ Blok: <b>"+stats.block+"</b></div><div>💥 Özel: <b>"+stats.special+"</b></div>"+
+    "<div>🔥 En yüksek kombo: <b>x"+stats.maxCombo+"</b></div><div>🤗 Sarılma: <b>"+stats.hug+"</b></div>";
+  document.getElementById("nextBtn").textContent = win? (level>=5?"Final 💕":"Sonraki Seviye ➜") : "Tekrar Dene 🔁";
+  document.getElementById("end").classList.add("show");
+}
+function nextLevel(){
+  const won = N.hp<=0 || (D.hp>N.hp);
+  if(!won){ document.getElementById("end").classList.remove("show"); initRound(); return; }
+  if(level>=5){ peaceEnding(); return; }
+  level++;
+  document.getElementById("end").classList.remove("show");
+  initRound();
+}
+function peaceEnding(){ gameState="love"; clearInterval(timerInt); document.getElementById("end").classList.remove("show"); document.getElementById("love").classList.add("show"); spawnHearts(W/2,H/2,16); }
+function resetGame(){ gameState="menu"; clearInterval(timerInt); level=1; score=0;
+  document.getElementById("end").classList.remove("show"); document.getElementById("love").classList.remove("show");
+  document.getElementById("menu").classList.add("show"); }
+
+/* ============ ANA DÖNGÜ ============ */
+function frame(){
+  requestAnimationFrame(frame);
+
+  // ekran sarsıntısı
+  ctx.save();
+  if(shake>0){ ctx.translate((Math.random()-0.5)*shake,(Math.random()-0.5)*shake); shake*=0.85; if(shake<0.5)shake=0; }
+
+  drawBG();
+
+  if(gameState==="fight"||gameState==="roundend"){
+    if(hitStop>0){ hitStop--; }
+    else {
+      if(gameState==="fight"){
+        playerControl(); botAI();
+        physics(D); physics(N);
+        attackConnect(D,N); attackConnect(N,D);
+        // power timer
+        if(powerMode){ powerTimer--; if(powerTimer<=0){ powerMode=false; power=0; } }
+        // itemler
+        itemTimer--; if(itemTimer<=0){ spawnItem(); itemTimer=420+((Math.random()*240)|0); }
+        updateItems();
+        maybeHelper();
+      } else { physics(D); physics(N); }
+    }
+
+    drawItems(); drawHelper();
+    // öndeki/arkadaki sıralama
+    if(D.x<=N.x){ drawFighter(N); drawFighter(D); } else { drawFighter(D); drawFighter(N); }
+    drawParticles(); drawFX();
+    updateHUD();
+  }
+
+  ctx.restore();
+}
+frame();
+</script>
+</body>
+</html>
